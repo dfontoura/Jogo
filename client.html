@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -30,17 +31,22 @@
     </audio>
     
 
-    <script type="module">
-        import createKeyboardListener from './keyboard-listener.js'
+    <script>
         const screen = document.getElementById('screen');
         const audio = document.getElementById('audio');
         const context = screen.getContext('2d');
+        
+        
+        
+        
+        
         
         function createGame(){
             const state = {
                 players: {},
                 fruits: {}
             }
+
 
             function addPlayer(command) {
                 const playerID = command.playerID
@@ -85,6 +91,9 @@
                     }
                 }
             }
+
+
+
 
 
             function movePlayer(command){
@@ -160,7 +169,47 @@
         keyboardListener.subscribe(game.movePlayer)
         
 
+
+
+
+        function createKeyboardListener() {
+
+            const state = {
+                observers: []
+            }
+
+            function subscribe(observerFunction) {
+                state.observers.push(observerFunction)
+            }
+
+            function notifyAll(command){
+                for (const observerfunction of state.observers){
+                    observerfunction(command);
+                }
+            }
+
+            document.addEventListener('keydown', handleKeyDown);
+
+            function handleKeyDown(event){
+            const keyPressed = event.key
+
+            const command = {   
+                playerID: 'player1', 
+                keyPressed
+            }
+
+            notifyAll(command);
+            }
+
+            return {
+                subscribe
+            }
+
+        }
+
  
+
+
 
         renderScreen();
 
