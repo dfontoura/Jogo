@@ -19,24 +19,42 @@
             width: 400px;
             height: 400px;
         }
+        
+        h1{
+            color:firebrick;
+            text-align: center;
+        }
+        
+        p{
+            text-align: center;
+        }
     </style>
 
 </head>
 
 
 <body>
-    <canvas id="screen" width="10" height="10"></canvas>
-    <audio id="audio">
+    <h1>O famoso jogo da cobrinha</h1>
+    <canvas id="screen" width="15" height="15"></canvas>
+    <p id="score">Pontuação: </p>
+    <p>by Daniel Fontoura</p>
+    <audio id="audioFruit">
         <source src="SomFruta.mp3" type="audio/mpeg">
     </audio>
-    
+    <audio id="audioGameOver">
+        <source src="Spah.mp3" type="audio/mpeg">
+    </audio>
 
     <script>
         const screen = document.getElementById('screen');
-        const audio = document.getElementById('audio');
+        const footerScore = document.getElementById('score');
+        const audioFruit = document.getElementById('audioFruit');
+        const audioGameOver = document.getElementById('audioGameOver');
         const context = screen.getContext('2d');
-        
-        
+        var gameOver = false;
+        var score = 0
+        var FruitColor = 'red'
+        var myTimer
         
         
         
@@ -50,12 +68,16 @@
 
             function addPlayer(command) {
                 const playerID = command.playerID
-                const playerX = command.playerX
-                const playerY = command.playerY
-
+                const playerColor = command.playerColor
+                const playerLength = command.playerLength
+                const playerPieces = command.playerPieces
+                const playerDirection = command.playerDirection
+ 
                 state.players[playerID] = {
-                    x: playerX,
-                    y: playerY
+                    color: playerColor,
+                    length: playerLength,
+                    pieces: playerPieces,
+                    direction: playerDirection
                 }
             }
 
@@ -83,11 +105,35 @@
 
             function checkForFruitCollision(playerID) {
                 player = state.players[playerID]
+                theHead = player.pieces[0]
                 for (const fruitID in state.fruits) {
                     const fruit = state.fruits[fruitID]
-                    if (player.x === fruit.x && player.y === fruit.y) {
-                        audio.play()
+                    if (theHead.x === fruit.x && theHead.y === fruit.y) {
+                        audioFruit.play()
                         removeFruit({ fruitID: fruitID })
+                        player.length += 1
+                        newFruitX = Math.floor(Math.random() * (screen.width))
+                        newFruitY = Math.floor(Math.random() * (screen.height))
+                        newFruitName = 'fruit1'
+                        score += 1
+                        addFruit({fruitID: newFruitName, fruitX: newFruitX, fruitY: newFruitY})
+                        clearInterval(myTimer)
+                        myTimer = setInterval(atualizaPosicao, 300 - (10 * score)) ;
+                    }
+                }
+            }
+
+            function checkForSelfCollision(playerID) {
+                player = state.players[playerID]
+                playerPiece = player.pieces
+                theHead = player.pieces[0]
+                for (let i = 1 ; i < player.pieces.length ; i++) {
+                    if (theHead.x === playerPiece[i].x && theHead.y === playerPiece[i].y) {
+                        audioGameOver.play()
+                        player.color='gray'
+                        FruitColor = 'gray'
+                        gameOver = true
+                        clearInterval(myTimer)
                     }
                 }
             }
@@ -95,39 +141,27 @@
 
 
 
-
             function movePlayer(command){
+
                 const aceptedMoves = {
                     ArrowUp(player) {
-                        if(player.y > 0) {
-                            player.y -= 1
-                        }
-                        else {
-                            player.y = screen.height-1
+                        if (player.direction !== 'ArrowDown') {
+                            player.direction = 'ArrowUp'
                         }
                     },
                     ArrowDown(player) {
-                        if(player.y < screen.height-1) {
-                            player.y += 1
-                        }
-                        else {
-                            player.y = 0
+                        if (player.direction !== 'ArrowUp') {
+                            player.direction = 'ArrowDown'
                         }
                     },
                     ArrowLeft(player) {
-                        if(player.x > 0) {
-                            player.x -= 1
-                        }
-                        else {
-                            player.x = screen.width-1
+                        if (player.direction !== 'ArrowRight') {
+                            player.direction = 'ArrowLeft'
                         }
                     },
                     ArrowRight(player) {
-                        if(player.x < screen.width-1) {
-                            player.x += 1
-                        }
-                        else {
-                            player.x = 0
+                        if (player.direction !== 'ArrowLeft') {
+                            player.direction = 'ArrowRight'
                         }
                     }
                 }    
@@ -139,8 +173,10 @@
                 const moveFunction = aceptedMoves[keyPressed]
                 if (player && moveFunction) {
                     moveFunction(player)
-                    checkForFruitCollision(playerID)
+                    //checkForFruitCollision(playerID)
+                    //checkForSelfCollision(playerID)
                 }
+
  
                 return 
                 
@@ -152,7 +188,9 @@
                     addPlayer,
                     removePlayer,
                     addFruit,
-                    removeFruit
+                    removeFruit,
+                    checkForFruitCollision,
+                    checkForSelfCollision
             }
             
 
@@ -160,11 +198,9 @@
 
         const game = createGame()
  
-        game.addPlayer({playerID: "player1", playerX: 1, playerY:1})
-        game.addPlayer({playerID: "player2", playerX: 2, playerY:2})
-        game.addFruit({fruitID: "fruit1", fruitX: 3, fruitY:5})
-        game.addFruit({fruitID: "fruit2", fruitX: 5, fruitY:7})
-
+        game.addPlayer({playerID: "player1", playerColor: 'green', playerLength: 3, playerPieces:[{x: 3, y:1} , {x: 2, y: 1} , {x: 1, y: 1}], playerDirection: 'ArrowRight'})
+        game.addFruit({fruitID: 'fruit1', fruitX: 3, fruitY:5})
+     
         const keyboardListener = createKeyboardListener()
         keyboardListener.subscribe(game.movePlayer)
         
@@ -209,28 +245,140 @@
 
  
 
+        renderScreen()
+
+        myTimer = setInterval(atualizaPosicao, 300 ) ;
+
+        if (gameOver === true){
+            clearInterval(myTimer)
+        }
+        //setinterval(renderScreen,100);
 
 
-        renderScreen();
+
+
+
+
+        function atualizaPosicao(){
+            const player = game.state.players['player1']
+            if (player.direction === 'ArrowUp') {
+                theHead = player.pieces[0]
+                playerLength = player.length
+                playerPieces = player.pieces
+                if(theHead.y > 0) {
+                    playerPieces.unshift({x: theHead.x, y: theHead.y-1})
+                }
+                else {
+                    playerPieces.unshift({x: theHead.x, y: screen.height-1})
+                }
+                if (playerLength < playerPieces.length) {
+                        player.pieces.pop()
+                }
+            }
+            
+            if (player.direction === 'ArrowDown') {
+                theHead = player.pieces[0]
+                playerLength = player.length
+                playerPieces = player.pieces
+                if(theHead.y < screen.height-1) {
+                    playerPieces.unshift({x: theHead.x, y: theHead.y + 1})
+                }
+                else {
+                    playerPieces.unshift({x: theHead.x, y: 0})
+                }
+                if (playerLength < playerPieces.length) {
+                        player.pieces.pop()
+                }
+            }
+
+            if (player.direction === 'ArrowLeft') {
+                theHead = player.pieces[0]
+                playerLength = player.length
+                playerPieces = player.pieces
+                if(theHead.x > 0) {
+                    playerPieces.unshift({x: theHead.x - 1 , y: theHead.y})
+                }
+                else {
+                    playerPieces.unshift({x: screen.width - 1, y: theHead.y})
+                }
+                if (playerLength < playerPieces.length) {
+                        player.pieces.pop()
+                }
+            }
+
+            if (player.direction === 'ArrowRight') {
+                theHead = player.pieces[0]
+                playerLength = player.length
+                playerPieces = player.pieces
+                if(theHead.x < screen.width - 1) {
+                    playerPieces.unshift({x: theHead.x + 1 , y: theHead.y})
+                }
+                else {
+                    playerPieces.unshift({x: 0, y: theHead.y})
+                }
+                if (playerLength < playerPieces.length) {
+                        player.pieces.pop()
+                }
+            }
+            
+            game.checkForFruitCollision('player1')
+            game.checkForSelfCollision('player1')
+
+        }
+
+
 
 
         function renderScreen(){
             context.clearRect (0,0, screen.width, screen.height);
             
             for (const playerID in game.state.players){
-                const player = game.state.players[playerID];
-                context.fillStyle = 'black';
-                context.fillRect(player.x , player.y , 1 , 1);
+                const player = game.state.players[playerID]
+
+
+
+               
+                for (const playerPiece in game.state.players[playerID].pieces) {
+                    context.fillStyle = player.color;
+                    context.fillRect(player.pieces[playerPiece].x , player.pieces[playerPiece].y , 1 , 1);
+
+                }
             }
 
             for(const fruitID in game.state.fruits){
                 const fruit = game.state.fruits[fruitID];
-                context.fillStyle='green';
+                context.fillStyle= FruitColor;
                 context.fillRect(fruit.x , fruit.y , 1 , 1);
             }
 
-            requestAnimationFrame(renderScreen);
+            footerScore.textContent = 'Pontuação: ' + score
+
+            if(gameOver===false){
+
+                //sleep(3000); 
+                //if (a > 10){
+                //    atualizaPosicao();  
+                //    a=0
+               // }
+                //a++
+                //atualizaPosicao();
+                requestAnimationFrame(renderScreen);
+            }
+            else return;
+           
+            function sleep(milliseconds) {
+                const date = Date.now();
+                let currentDate = null;
+                do {
+                    currentDate = Date.now();
+                } while (currentDate - date < milliseconds);
+            }
+
+
+            
+            
         }
+
 
 
 
