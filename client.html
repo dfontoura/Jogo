@@ -29,6 +29,8 @@
             text-align: center;
         }
     </style>
+    <!-- <script src="keyboard-listener.js"></script>
+      --> 
 
 </head>
 
@@ -45,7 +47,8 @@
         <source src="Spah.mp3" type="audio/mpeg">
     </audio>
 
-    <script>
+    <script type="module">
+        import createKeyboardListener from './keyboard-listener.js'
         const screen = document.getElementById('screen');
         const footerScore = document.getElementById('score');
         const audioFruit = document.getElementById('audioFruit');
@@ -54,10 +57,32 @@
         var gameOver = false;
         var score = 0
         var FruitColor = 'red'
-        var myTimer
+        var TimerMovePlayer
+        var TimerRenderScreen
+        var speed = 300
+        var pause = false
         
         
-        
+        const game = createGame()
+ 
+        game.addPlayer({playerID: "player1", playerColor: 'green', playerLength: 3, playerPieces:[{x: 3, y:1} , {x: 2, y: 1} , {x: 1, y: 1}], playerDirection: 'ArrowRight'})
+        game.addFruit({fruitID: 'fruit1', fruitX: 3, fruitY:5})
+     
+        const keyboardListener = createKeyboardListener()
+        keyboardListener.subscribe(game.changeDirection)
+
+
+        renderScreen()
+
+        TimerMovePlayer = setInterval(movePlayer, speed ) ;
+        setInterval(function(){requestAnimationFrame(renderScreen)},10);
+
+
+
+
+
+
+
         
         function createGame(){
             const state = {
@@ -117,8 +142,9 @@
                         newFruitName = 'fruit1'
                         score += 1
                         addFruit({fruitID: newFruitName, fruitX: newFruitX, fruitY: newFruitY})
-                        clearInterval(myTimer)
-                        myTimer = setInterval(atualizaPosicao, 300 - (10 * score)) ;
+                        clearInterval(TimerMovePlayer)
+                        speed = speed * 0.9
+                        TimerMovePlayer = setInterval(movePlayer, speed) ;
                     }
                 }
             }
@@ -133,7 +159,7 @@
                         player.color='gray'
                         FruitColor = 'gray'
                         gameOver = true
-                        clearInterval(myTimer)
+                        clearInterval(TimerMovePlayer)
                     }
                 }
             }
@@ -141,7 +167,7 @@
 
 
 
-            function movePlayer(command){
+            function changeDirection(command){
 
                 const aceptedMoves = {
                     ArrowUp(player) {
@@ -163,12 +189,25 @@
                         if (player.direction !== 'ArrowLeft') {
                             player.direction = 'ArrowRight'
                         }
+                    },
+                    Escape(player) {
+                        if (pause === false) {
+                            pause = true;
+                            clearInterval(TimerMovePlayer)
+                            clearInterval(TimerRenderScreen)
+                        }
+                        else {
+                            pause = false
+                            TimerMovePlayer = setInterval(movePlayer, speed) ;
+                            TimerRenderScreen = setInterval(function(){requestAnimationFrame(renderScreen)},10);
+                        }
                     }
                 }    
                                        
                 const keyPressed = command.keyPressed
                 const playerID = command.playerID
                 const player = state.players[playerID]
+                console.log(keyPressed);
                 
                 const moveFunction = aceptedMoves[keyPressed]
                 if (player && moveFunction) {
@@ -183,7 +222,7 @@
             }
             
             return{
-                    movePlayer,
+                    changeDirection,
                     state,
                     addPlayer,
                     removePlayer,
@@ -196,70 +235,20 @@
 
         }
 
-        const game = createGame()
- 
-        game.addPlayer({playerID: "player1", playerColor: 'green', playerLength: 3, playerPieces:[{x: 3, y:1} , {x: 2, y: 1} , {x: 1, y: 1}], playerDirection: 'ArrowRight'})
-        game.addFruit({fruitID: 'fruit1', fruitX: 3, fruitY:5})
-     
-        const keyboardListener = createKeyboardListener()
-        keyboardListener.subscribe(game.movePlayer)
+
         
 
 
 
 
-        function createKeyboardListener() {
-
-            const state = {
-                observers: []
-            }
-
-            function subscribe(observerFunction) {
-                state.observers.push(observerFunction)
-            }
-
-            function notifyAll(command){
-                for (const observerfunction of state.observers){
-                    observerfunction(command);
-                }
-            }
-
-            document.addEventListener('keydown', handleKeyDown);
-
-            function handleKeyDown(event){
-            const keyPressed = event.key
-
-            const command = {   
-                playerID: 'player1', 
-                keyPressed
-            }
-
-            notifyAll(command);
-            }
-
-            return {
-                subscribe
-            }
-
-        }
 
  
 
-        renderScreen()
-
-        myTimer = setInterval(atualizaPosicao, 300 ) ;
-
-        if (gameOver === true){
-            clearInterval(myTimer)
-        }
-        //setinterval(renderScreen,100);
 
 
 
 
-
-
-        function atualizaPosicao(){
+        function movePlayer(){
             const player = game.state.players['player1']
             if (player.direction === 'ArrowUp') {
                 theHead = player.pieces[0]
@@ -357,12 +346,12 @@
 
                 //sleep(3000); 
                 //if (a > 10){
-                //    atualizaPosicao();  
+                //    movePlayer();  
                 //    a=0
                // }
                 //a++
-                //atualizaPosicao();
-                requestAnimationFrame(renderScreen);
+                //movePlayer();
+                //requestAnimationFrame(renderScreen);
             }
             else return;
            
