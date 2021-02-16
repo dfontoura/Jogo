@@ -30,14 +30,12 @@
             text-align: center;
         }
     </style>
-    //<script src="keyboard-listener.js"></script>     
-    //<script src="game.js"></script>
-    //<script src="render-screen.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 
 
 <body>
-    <h1>O famoso jogo da cobrinha</h1>
+    <h1>Snakes</h1>
     <canvas id="screen" width="15" height="15"></canvas>
     <p id="score">Pontuação: 0</p>
     <p>by Daniel Fontoura</p>
@@ -53,39 +51,60 @@
         import createKeyboardListener from './keyboard-listener.js'
         import renderScreen from './render-screen.js'
 
-        //const createKeyboardListener = require('./keyboard-listener.js');
-
-        const screen = document.getElementById('screen');
-        //const context = screen.getContext('2d');
-        
         const audioFruit = document.getElementById('audioFruit');
         const audioGameOver = document.getElementById('audioGameOver');
-        
+
+        const screen = document.getElementById('screen');
         const footerScore = document.getElementById('score');
 
-        const speed = 300
-        
-/*
-        let fruitColor = 'Crimson'
-        let playerColor = 'LawnGreen'
-        let playerName = 'player1'
-        
-        const game = createGame({screenWidth:screen.width, screenHeight: screen.height, scorePanel: footerScore, startSpeed: speed})
- 
-        game.addPlayer({playerID: playerName, playerColor: playerColor, playerPieces:[{x: 3, y:1}], playerDirection: ['ArrowRight']})
-        
-        game.addFruit({fruitID: 'fruit1', fruitColor: fruitColor, fruitX: 3, fruitY:5})
-*/
+        const speed = 300        
+        const playerColor = 'LawnGreen'
+
+        const game = createGame({screenWidth: 15, screenHeight: 15, startSpeed: speed})
 
         const keyboardListener = createKeyboardListener(document)
-        keyboardListener.subscribe(game.changeDirection)
 
-        renderScreen(screen, game)
+        const socket = io()
 
-        //var TimerMovePlayer = setInterval(game.movePlayers, speed ) ;
-        var TimerRenderScreen = setInterval ( function() { requestAnimationFrame( function() { renderScreen (screen, game) } ) } , 10);
 
+        socket.on ('connect', () => {
+            const playerId = socket.id
+            console.log(`Player connected on Client with id: ${playerId}`)
+
+//            renderScreen(screen, game, footerScore, playerId)
+            //var TimerRenderScreen = setInterval ( function() { requestAnimationFrame( function() { renderScreen (screen, game, footerScore, playerId) } ) } , 10);
+            requestAnimationFrame( function() { renderScreen (screen, game, footerScore, playerId) } )
+
+        })
+
+        socket.on ('setup', (state) => {
+            const playerId = socket.id
+            game.setState(state)            
+
+            game.state.players[playerId].color = playerColor
+            keyboardListener.registerPlayerId(playerId)
+            keyboardListener.subscribe(game.changeDirection)
+            keyboardListener.subscribe((command) => {
+                socket.emit(command.type, command)
+            })
+        })
+
+        socket.on ('add-player', (command) => {
+            console.log(`> receiving ${command.type} -> ${command.playerId} event from server`);
+            game.addPlayer(command)
+        })
+
+        socket.on ('remove-player', (command) => {
+            console.log(`> receiving ${command.type} -> ${command.playerId} event from server`);
+            game.removePlayer(command)
+        })
+
+        socket.on ('move-players', (command) => {
+            const playerId = socket.id
+            requestAnimationFrame( function() { renderScreen (screen, command.state, footerScore, playerId) } ) 
+        })
+
+        
     </script>
-
 </body>
 </html>
