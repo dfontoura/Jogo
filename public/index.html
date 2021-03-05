@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" type='image/x-icon' href="favicon.ico" />
-    <title>Um jogo qualquer</title>
+    <title>SNAKES!</title>
 
     <style>
         #screen {
@@ -29,16 +29,21 @@
         p{
             text-align: center;
         }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 
 
 <body>
-    <h1>Snakes</h1>
-    <canvas id="screen" width="15" height="15"></canvas>
+    <h1>Snakes!</h1>
+    <canvas id="screen" width="20" height="20"></canvas>
     <p id="score">Pontuação: 0</p>
-    <p>by Daniel Fontoura</p>
+    <p id="high-score">High Score: 0</p>
+    <p>Developed by Daniel Fontoura</p>
     <audio id="audioFruit">
         <source src="SomFruta.mp3" type="audio/mpeg">
     </audio>
@@ -46,35 +51,39 @@
         <source src="Spah.mp3" type="audio/mpeg">
     </audio>
 
+
     <script type="module">
         import createGame from './game.js'
         import createKeyboardListener from './keyboard-listener.js'
         import renderScreen from './render-screen.js'
 
         const audioFruit = document.getElementById('audioFruit');
-        const audioGameOver = document.getElementById('audioGameOver');
+        const audioCollision = document.getElementById('audioGameOver');
 
         const screen = document.getElementById('screen');
         const footerScore = document.getElementById('score');
+        const footerHighScore = document.getElementById('high-score');
 
-        const speed = 300        
+        //const playerName = window.prompt('Digite seu nome:', 'seu nome aqui')
         const playerColor = 'LawnGreen'
 
-        const game = createGame({screenWidth: 15, screenHeight: 15, startSpeed: speed})
+        const game = createGame({screenWidth: 15, screenHeight: 15 })
 
         const keyboardListener = createKeyboardListener(document)
 
+        //const connectionParameter = 'name=Daniel' //+ playerName
         const socket = io()
+
 
 
         socket.on ('connect', () => {
             const playerId = socket.id
-            console.log(`Player connected on Client with id: ${playerId}`)
-
-//            renderScreen(screen, game, footerScore, playerId)
-            //var TimerRenderScreen = setInterval ( function() { requestAnimationFrame( function() { renderScreen (screen, game, footerScore, playerId) } ) } , 10);
-            requestAnimationFrame( function() { renderScreen (screen, game, footerScore, playerId) } )
-
+            const askName = window.prompt('Digite seu nome:')
+            const playerName = askName ? askName : playerId.substring( 0, 10 ) 
+            console.log(`Player connected on Client with id: ${playerId} and name: ${playerName}`)
+            console.log(playerName);
+            socket.emit('add-player-name', playerName)
+            
         })
 
         socket.on ('setup', (state) => {
@@ -83,7 +92,7 @@
 
             game.state.players[playerId].color = playerColor
             keyboardListener.registerPlayerId(playerId)
-            keyboardListener.subscribe(game.changeDirection)
+            //keyboardListener.subscribe(game.changeDirection)
             keyboardListener.subscribe((command) => {
                 socket.emit(command.type, command)
             })
@@ -101,9 +110,22 @@
 
         socket.on ('move-players', (command) => {
             const playerId = socket.id
-            requestAnimationFrame( function() { renderScreen (screen, command.state, footerScore, playerId) } ) 
+            requestAnimationFrame( function() { renderScreen (screen, command.state, footerScore, footerHighScore, playerId) } ) 
         })
 
+        socket.on ('eat-fruit', (command) => {
+            const playerId = socket.id
+            if (command.playerId === playerId) {
+                audioFruit.play()
+            } 
+        })
+
+        socket.on ('collision', (command) => {
+            const playerId = socket.id
+            if (command.playerId === playerId) {
+                audioCollision.play()
+            } 
+        })
         
     </script>
 </body>

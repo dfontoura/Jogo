@@ -11,21 +11,21 @@ const sockets = new io.Server(server)
 app.use(express.static('public'))
 
 const speed = 200
-const howManyFruits = 3
+const initialFruits = 3
 const footerScore = [1, 2] //document.getElementById('score');
 
-const game = createGame({screenWidth: 15, screenHeight: 15, startSpeed: speed})
+const game = createGame({screenWidth: 20, screenHeight: 20, maxFruits: initialFruits})
 
 game.subscribe((command) => {
     sockets.emit(command.type, command)
 })
 
-var TimerMovePlayer = setInterval(game.movePlayers, game.state.speed);
+var TimerMovePlayer = setInterval(game.movePlayers, speed);
 
 
 //game.addPlayer({playerID: playerName, playerColor: playerColor, playerPieces:[{x: 3, y:1}], playerDirection: ['ArrowRight']})
 
-for (let i = 1; i <= howManyFruits; i++) {
+for (let i = 1; i <= initialFruits; i++) {
     game.addFruit()
 
 }
@@ -33,8 +33,11 @@ for (let i = 1; i <= howManyFruits; i++) {
 
 sockets.on('connection', (socket) => {
     const playerId = socket.id
-    console.log(`Player connected on Server with id: ${playerId}`)
-
+    //console.log(socket);
+    //const playerName = socket.handshake.query
+    //console.log(socket.handshake.query);
+    //console.log(`Player connected on Server with id: ${playerId} and name: ${playerName}`)
+ 
     game.addPlayer({playerId: playerId})
 
     socket.emit('setup', game.state)
@@ -42,6 +45,11 @@ sockets.on('connection', (socket) => {
     socket.on('disconnect', () => {
         game.removePlayer({playerId: playerId})
         console.log(`> Player disconnected: ${playerId}`)
+    })
+
+    socket.on('add-player-name', (playerName) => {
+        game.addPlayerName({playerId: playerId, playerName: playerName})
+        console.log(`> Player ${playerId} now have a name: ${playerName}`)
     })
 
     socket.on('change-direction', (command) => {
@@ -54,6 +62,6 @@ sockets.on('connection', (socket) => {
 })
 
 
-server.listen(3000, () => {
-    console.log('> Server listenin on port: 3000');
+server.listen(80, () => {
+    console.log('> Server listening on port: 80');
 })

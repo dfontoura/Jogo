@@ -1,17 +1,13 @@
-export default function createGame({ screenWidth, screenHeight, startSpeed }) {
+export default function createGame({ screenWidth, screenHeight, maxFruits }) {
 
     const state = {
         players: {},
         fruits: {},
         screen: { width: screenWidth, height: screenHeight },
-        pause: false,
-        changeDirectionRequest: false,
-        speed: startSpeed,
-        gameOver: false,
-        fruitColor: 'Crimson'
+        highScore: {playerName: "", score: 0}
     }
 
-    
+    const fruitColor = 'Crimson'
 
     const directions = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
 
@@ -36,20 +32,20 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
 
     function addPlayer(command) {
         const playerId = command.playerId
+        const playerName = 'playerName' in command ? command.playerName : playerId.substring(0 , 10)
         const playerColor = 'playerColor' in command ? command.playerColor : 'green'
 
-        //const playerInitialPosition = [randomPosition()]
-         //const arrayOfPositions = [{randomposition}]      //x: randomPosition.x, y: randomPosition.y}]
         const playerPieces = 'playerPieces' in command ? command.playerPieces : [randomPosition()]
-        const teste = Math.floor(Math.random() * 4.9)
-        const playerDirection = 'playerDirection' in command ? command.playerDirection : directions[teste] //Math.floor(Math.random() * 4.9)]
+        const playerDirection = 'playerDirection' in command ? command.playerDirection : directions[Math.floor(Math.random() * 4.9)] 
 
 
         state.players[playerId] = {
+            name: playerName,
             color: playerColor,
             length: Object.keys(playerPieces).length,
             pieces: playerPieces,
             direction: [playerDirection],
+            changeDirectionRequest: false,
             score: 0
         }
 
@@ -71,18 +67,24 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
         })
     }
 
-    function addFruit(command) {
-        let fruitsLength = Object.keys(state.fruits).length
-        const fruitId = command ? command.fruitId : 'fruit' + Math.floor(Math.random() * 9999)
-        const fruitColor = command ? command.fruitColor : state.fruitColor
-        const fruitPosition = command ? command.fruitPosition : randomPosition () 
+    function addPlayerName({playerId, playerName}) {    
+        state.players[playerId].name = playerName
+    }
 
-        state.fruits[fruitId] = {
-            color: fruitColor,
+
+    function addFruit(fruitPosition) {
+        let fruitsLength = Object.keys(state.fruits).length
+        const newFruitId = 'fruit' + Math.floor(Math.random() * 9999)
+        const newFruitColor = fruitColor
+        const newFruitPosition = fruitPosition ? fruitPosition : randomPosition () 
+        
+        state.fruits[newFruitId] = {
+            color: newFruitColor,
             length: fruitsLength,
-            x: fruitPosition.x,
-            y: fruitPosition.y
+            x: newFruitPosition.x,
+            y: newFruitPosition.y
         }
+
     }
 
     function removeFruit(command) {
@@ -91,39 +93,46 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
     }
 
     function checkForFruitCollision(playerId) {
-        //console.log('fruit collision');
         const player = state.players[playerId]
         const theHead = player.pieces[0]
         for (const fruitId in state.fruits) {
             const fruit = state.fruits[fruitId]
             if (theHead.x === fruit.x && theHead.y === fruit.y) {
-                //audioFruit.play()
                 removeFruit({ fruitId: fruitId })
-                console.log(`Removed fruit ${fruitId}`);
                 player.length += 1
                 player.score += 50
-                addFruit()
-                console.log('add fruit')
-//                clearInterval(TimerMovePlayer)
-//                state.speed = state.speed * 0.95
-//                if (state.speed < 10) {
-//                    state.speed = startSpeed
-//                }
-//                TimerMovePlayer = setInterval(movePlayers, state.speed);
+
+                const howManyFruits = Object.keys(state.fruits).length
+                if (howManyFruits < maxFruits) {
+                    addFruit()    
+                }
+                
+                if ( player.score > state.highScore.score ){
+                    state.highScore.playerName = player.name
+                    state.highScore.score = player.score
+                }
+
+                notifyAll({
+                    type: 'eat-fruit',
+                    playerId: playerId
+                })
+
             }
         }
     }
 
     function randomPosition() {
-        const newX = Math.floor(Math.random() * (state.screen.width))
-        const newY = Math.floor(Math.random() * (state.screen.height))
+        let newX = Math.floor(Math.random() * (state.screen.width))
+        let newY = Math.floor(Math.random() * (state.screen.height))
 
         TestIfAnyCollision: {
             for (const eachPlayerID in state.players) {
                 const eachPlayer = state.players[eachPlayerID]
                 for (const eachPiece of eachPlayer.pieces) {
                     if (newX === eachPiece.x && newY === eachPiece.y) {
-                        randomPosition()
+                        let newPosition = randomPosition()
+                        newX = newPosition.x
+                        newY = newPosition.y
                         break TestIfAnyCollision
                     }
                 }
@@ -142,8 +151,9 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
 
     function checkForCollision(playerId) {
         const thePlayerId = playerId
-        const theHead = state.players[playerId].pieces[0]
-        const thePieces = state.players[playerId].pieces
+        const thePlayer = state.players[playerId]
+        const theHead = thePlayer.pieces[0]
+        const thePieces = thePlayer.pieces
 
         search: {
             for (const aPlayerId in state.players) {
@@ -154,41 +164,33 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
                         continue
                     } 
 
-                    //console.log(i)
-                    //console.log(aPlayerId)
-                    //console.log(state.players)
-                    //console.log(aPlayer)
-                    //console.log(aPlayer.pieces)
-                    //console.log(aPlayerPiece[i])
-
                     if (theHead.x === aPlayerPiece[i].x && theHead.y === aPlayerPiece[i].y) { //Colisão!
-                        //audioGameOver.play()
-                        if (thePlayerId !== aPlayerId && i !== 0) {
-                            //aPlayerPiece.length += (thePieces.length - 1)
-                            console.log('Antes:');
-                            console.log(state.players[thePlayerId].pieces);
-                            state.players[aPlayerId].pieces = aPlayerPiece.concat(thePieces) 
-                            console.log('Depois');
-                            console.log(state.players[thePlayerId].pieces)
-                        
-                        }   
+                        if (thePlayerId !== aPlayerId) { //o adversário ganha as peças
+                            aPlayer.pieces = aPlayer.pieces.concat(thePieces)
+                            aPlayer.score += thePlayer.score
+                            if ( aPlayer.score > state.highScore.score ){
+                                state.highScore.playerName = aPlayer.name
+                                state.highScore.score = aPlayer.score
+                            }
+             
+                        }  
+                        //else{
+                        //    for (let i = 1; i < thePieces.length; i++) {
+                        //        const newFruitPosition = thePieces[i]
+                        //        addFruit(newFruitPosition)
+                        //    }
+                        //} 
 
-                        /*
-                        console.log('Before:')
-                        console.log(thePieces.length);
-                        console.log(thePieces);
-                        */
-                        
+
                         state.players[thePlayerId].pieces.length = 1
-                        
-                        /* console.log('After: ');
-                        console.log(thePieces.length);
-                        console.log(state.players[thePlayerId].pieces.length)
-                        console.log(thePieces);
-                        console.log(state.players[thePlayerId].pieces)
-                        */
-
+                        state.players[thePlayerId].length = 1
+ 
                         state.players[thePlayerId].score = 0
+
+                        notifyAll({
+                            type: 'collision',
+                            playerId: playerId
+                        })
                         break search
 
                     }
@@ -206,68 +208,52 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
             ArrowUp(player) {
                 let lenDirections = player.direction.length
                 if (player.direction[lenDirections - 1] !== 'ArrowDown' && player.direction[lenDirections - 1] !== 'ArrowUp') {
-                    if (lenDirections > 1 || state.changeDirectionRequest === true) {
+                    if (lenDirections > 1 || player.changeDirectionRequest === true) {
                         player.direction.push('ArrowUp')
                     }
                     else {
                         player.direction[0] = 'ArrowUp'
-                        state.changeDirectionRequest = true
+                        player.changeDirectionRequest = true
                     }
                 }
             },
             ArrowDown(player) {
                 let lenDirections = player.direction.length
                 if (player.direction[lenDirections - 1] !== 'ArrowUp' && player.direction[lenDirections - 1] !== 'ArrowDown') {
-                    if (lenDirections > 1 || state.changeDirectionRequest === true) {
+                    if (lenDirections > 1 || player.changeDirectionRequest === true) {
                         player.direction.push('ArrowDown')
                     }
                     else {
                         player.direction[0] = 'ArrowDown'
-                        state.changeDirectionRequest = true
+                        player.changeDirectionRequest = true
                     }
                 }
             },
             ArrowLeft(player) {
                 let lenDirections = player.direction.length
                 if (player.direction[lenDirections - 1] !== 'ArrowRight' && player.direction[lenDirections - 1] !== 'ArrowLeft') {
-                    if (lenDirections > 1 || state.changeDirectionRequest === true) {
+                    if (lenDirections > 1 || player.changeDirectionRequest === true) {
                         player.direction.push('ArrowLeft')
                     }
                     else {
                         player.direction[0] = 'ArrowLeft'
-                        state.changeDirectionRequest = true
+                        player.changeDirectionRequest = true
                     }
                 }
             },
             ArrowRight(player) {
                 let lenDirections = player.direction.length
                 if (player.direction[lenDirections - 1] !== 'ArrowLeft' && player.direction[lenDirections - 1] !== 'ArrowRight') {
-                    if (lenDirections > 1 || state.changeDirectionRequest === true) {
+                    if (lenDirections > 1 || player.changeDirectionRequest === true) {
                         player.direction.push('ArrowRight')
                     }
                     else {
                         player.direction[0] = 'ArrowRight'
-                        state.changeDirectionRequest = true
+                        player.changeDirectionRequest = true
                     }
 
                 }
-            /*
-            },
-            Escape(player) {
-                if (state.gameOver === false) {
-                    if (state.pause === false) {
-                        state.pause = true;
-                        //renderScreen (screen, game)
-                        clearInterval(TimerMovePlayer)
-                        //clearInterval(TimerRenderScreen)
-                    }
-                    else {
-                        state.pause = false
-                        TimerMovePlayer = setInterval(movePlayers, state.speed);
-                        //TimerRenderScreen = setInterval ( function() { requestAnimationFrame( function() { renderScreen (screen, game) } ) } , 10);                  
-                    }
-                }
-            */
+            
             }
         }
 
@@ -288,16 +274,11 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
 
     function movePlayers() {
 
-        const command = {
-            type: 'move-players',
-            state: state
-        }
-        notifyAll(command)
 
         for (const playerId in state.players) {
 
-            state.changeDirectionRequest = false
             const player = state.players[playerId]
+            player.changeDirectionRequest = false
             const theHead = player.pieces[0]
             const playerLength = player.length
             const playerPieces = player.pieces
@@ -368,10 +349,18 @@ export default function createGame({ screenWidth, screenHeight, startSpeed }) {
             checkForCollision(playerId)
 
         }
+
+        const command = {
+            type: 'move-players',
+            state: state
+        }
+        notifyAll(command)
+
     }
 
     return {
         setState,
+        addPlayerName,
         changeDirection,
         movePlayers,
         addPlayer,

@@ -23,18 +23,21 @@ export default function createKeyboardListener(document) {
 
     document.addEventListener('keydown', handleKeyDown);
 
+
     function handleKeyDown(event){
-    const keyPressed = event.key
+    
+        const keyPressed = event.key
 
-    const command = {   
-        type: 'change-direction',
-        playerId: state.playerId, 
-        keyPressed
+        const command = {   
+            type: 'change-direction',
+            playerId: state.playerId, 
+            keyPressed
+        }
+
+        notifyAll(command);
     }
 
-    notifyAll(command);
-    }
-
+    
     return {
         subscribe,
         registerPlayerId
