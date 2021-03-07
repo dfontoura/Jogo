@@ -2,7 +2,7 @@
 
 A game developed with the only purpose of have some experience with the JavaScript language and also in client-server communication. Can be played with multiple players at the same time, each one in a client. Try it with multiple browser tabs!
 
-It can be seen running on a VPS Linux server here: [http://dfontoura.vps-kinghost.net](http://dfontoura.vps-kinghost.net)
+It can be seen running on a VPS Linux server here: [http://dfontoura.vps-kinghost.net](http://dfontoura.vps-kinghost.net){:target="_blank" rel="noopener"}
 
 Technologies:
 - HTML
