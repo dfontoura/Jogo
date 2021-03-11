@@ -49,7 +49,9 @@ sockets.on('connection', (socket) => {
 
     socket.on('add-player-name', (playerName) => {
         game.addPlayerName({playerId: playerId, playerName: playerName})
-        console.log(`> Player ${playerId} now have a name: ${playerName}`)
+        let data = new Date(Date.now())
+
+        console.log(`> ${data.toLocaleDateString()} ${data.toLocaleTimeString()} | New connection! ID: ${playerId} | Name: ${playerName}`)
     })
 
     socket.on('change-direction', (command) => {
