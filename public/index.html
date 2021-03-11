@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type='image/x-icon' href="favicon.ico" />
+    <title>SNAKES!</title>
+
+    <style>
+        #screen {
+            padding-left: 0;
+            padding-right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+            border: 10px solid #CCC;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            image-rendering:-moz-crisp-edges ;
+            width: 400px;
+            height: 400px;
+        }
+        
+        h1{
+            color:firebrick;
+            text-align: center;
+        }
+        
+        p{
+            text-align: center;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+
+
+<body>
+    <h1>Snakes!</h1>
+    <canvas id="screen" width="20" height="20"></canvas>
+    <p id="score">Pontuação: 0</p>
+    <p id="high-score">High Score: 0</p>
+    <p>Developed by Daniel Fontoura</p>
+    <audio id="audioFruit">
+        <source src="SomFruta.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="audioGameOver">
+        <source src="Spah.mp3" type="audio/mpeg">
+    </audio>
+
+
+    <script type="module">
+        import createGame from './game.js'
+        import createKeyboardListener from './keyboard-listener.js'
+        import renderScreen from './render-screen.js'
+
+        const audioFruit = document.getElementById('audioFruit');
+        const audioCollision = document.getElementById('audioGameOver');
+
+        const screen = document.getElementById('screen');
+        const footerScore = document.getElementById('score');
+        const footerHighScore = document.getElementById('high-score');
+
+        //const playerName = window.prompt('Digite seu nome:', 'seu nome aqui')
+        const playerColor = 'LawnGreen'
+
+        const game = createGame({screenWidth: 15, screenHeight: 15 })
+
+        const keyboardListener = createKeyboardListener(document)
+
+        //const connectionParameter = 'name=Daniel' //+ playerName
+        const socket = io()
+
+
+
+        socket.on ('connect', () => {
+            const playerId = socket.id
+            const askName = window.prompt('Digite seu nome:')
+            const playerName = askName ? askName : playerId.substring( 0, 10 ) 
+            console.log(`Player connected on Client with id: ${playerId} and name: ${playerName}`)
+            console.log(playerName);
+            socket.emit('add-player-name', playerName)
+            
+        })
+
+        socket.on ('setup', (state) => {
+            const playerId = socket.id
+            game.setState(state)            
+
+            game.state.players[playerId].color = playerColor
+            keyboardListener.registerPlayerId(playerId)
+            //keyboardListener.subscribe(game.changeDirection)
+            keyboardListener.subscribe((command) => {
+                socket.emit(command.type, command)
+            })
+        })
+
+        socket.on ('add-player', (command) => {
+            console.log(`> receiving ${command.type} -> ${command.playerId} event from server`);
+            game.addPlayer(command)
+        })
+
+        socket.on ('remove-player', (command) => {
+            console.log(`> receiving ${command.type} -> ${command.playerId} event from server`);
+            game.removePlayer(command)
+        })
+
+        socket.on ('move-players', (command) => {
+            const playerId = socket.id
+            requestAnimationFrame( function() { renderScreen (screen, command.state, footerScore, footerHighScore, playerId) } ) 
+        })
+
+        socket.on ('eat-fruit', (command) => {
+            const playerId = socket.id
+            if (command.playerId === playerId) {
+                audioFruit.play()
+            } 
+        })
+
+        socket.on ('collision', (command) => {
+            const playerId = socket.id
+            if (command.playerId === playerId) {
+                audioCollision.play()
+            } 
+        })
+        
+    </script>
+</body>
+</html>

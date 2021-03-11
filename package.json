@@ -1,0 +1,24 @@
+{
+  "name": "jogo",
+  "version": "1.0.0",
+  "description": "jogo",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfontoura/Jogo.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^3.1.1"
+  },
+  "bugs": {
+    "url": "https://github.com/dfontoura/Jogo/issues"
+  },
+  "homepage": "https://github.com/dfontoura/Jogo#readme"
+}
